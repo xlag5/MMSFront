@@ -22,6 +22,7 @@ export default function LegacyPage({
   useEffect(() => {
     let cancelled = false;
     const cleanupNodes: HTMLElement[] = [];
+    const root = document.getElementById(pageId);
 
     if (css) {
       let style = document.getElementById(styleId) as HTMLStyleElement | null;
@@ -83,8 +84,21 @@ export default function LegacyPage({
       }
     };
 
+    const adaptLinksForHashRouting = () => {
+      if (!root) return;
+      const links = root.querySelectorAll<HTMLAnchorElement>('a[href^="/"]');
+      links.forEach((link) => {
+        const href = link.getAttribute("href");
+        if (!href || href.startsWith("//")) return;
+        link.setAttribute("href", `#${href}`);
+      });
+    };
+
     void loadExternalScripts().then(() => {
-      if (!cancelled) runInlineScripts();
+      if (!cancelled) {
+        adaptLinksForHashRouting();
+        runInlineScripts();
+      }
     });
 
     return () => {
@@ -93,10 +107,10 @@ export default function LegacyPage({
         if (node.parentNode) node.parentNode.removeChild(node);
       }
     };
-  }, [css, externalScripts, inlineScripts, styleId]);
+  }, [css, externalScripts, inlineScripts, pageId, styleId]);
 
   return (
-    <div className={bodyClassName || ""}>
+    <div id={pageId} className={bodyClassName || ""}>
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
